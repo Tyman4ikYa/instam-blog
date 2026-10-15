@@ -13,7 +13,9 @@ const Profile = () => {
   useEffect(() => {
     Promise.all([
       api.get(`/users/${id}`),
-      user ? api.get(`/users/${id}/is-following`).catch(() => ({ data: { isFollowing: false } })) : Promise.resolve({ data: { isFollowing: false } }),
+      user
+        ? api.get(`/users/${id}/is-following`).catch(() => ({ data: { isFollowing: false } }))
+        : Promise.resolve({ data: { isFollowing: false } }),
     ])
       .then(([profileRes, followRes]) => {
         setProfile(profileRes.data);
@@ -47,81 +49,107 @@ const Profile = () => {
   const isMyProfile = user && Number(user.id) === Number(profile.id);
 
   return (
-    <div className="container" style={{ marginTop: "30px", maxWidth: "700px" }}>
-      <div className="card mb-4" style={{ borderRadius: "12px" }}>
-        <div className="card-body">
-          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-            <div
-              style={{
-                width: "80px",
-                height: "80px",
-                borderRadius: "50%",
-                background: "linear-gradient(135deg, #667eea, #764ba2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "white",
-                fontSize: "32px",
-                fontWeight: "bold",
-              }}
-            >
-              {profile.name.charAt(0).toUpperCase()}
-            </div>
-            <div style={{ flex: 1 }}>
-              <h2 style={{ marginBottom: "5px" }}>{profile.name}</h2>
-              <p className="text-muted" style={{ marginBottom: "5px" }}>
-                {profile.bio || "Без описания"}
-              </p>
-              <p className="text-muted small">📅 {new Date(profile.created_at).toLocaleDateString("ru")}</p>
-            </div>
+    <div className="container" style={{ maxWidth: "935px", marginTop: "30px" }}>
+      {/* Шапка профиля */}
+      <div style={{ display: "flex", gap: "80px", padding: "20px 0 40px", borderBottom: "1px solid #dbdbdb" }}>
+        <div style={{ display: "flex", justifyContent: "center", minWidth: "200px" }}>
+          <div className="avatar avatar-lg">
+            {profile.name.charAt(0).toUpperCase()}
+          </div>
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "20px" }}>
+            <h2 style={{ fontSize: "20px", fontWeight: "400", margin: 0 }}>
+              {profile.name}
+            </h2>
             {!isMyProfile && (
               <button
-                className={`btn ${isFollowing ? "btn-outline-secondary" : "btn-primary"}`}
+                className={isFollowing ? "btn-insta-outline" : "btn-insta"}
                 onClick={toggleFollow}
               >
                 {isFollowing ? "Отписаться" : "Подписаться"}
               </button>
             )}
+            {isMyProfile && (
+              <span style={{ color: "#8e8e8e", fontSize: "14px" }}>Это вы</span>
+            )}
           </div>
 
-          <div style={{ display: "flex", gap: "30px", marginTop: "20px", textAlign: "center" }}>
+          <div style={{ display: "flex", gap: "40px", marginBottom: "20px" }}>
             <div>
-              <h4 style={{ margin: 0 }}>{profile.postsCount}</h4>
-              <small className="text-muted">постов</small>
+              <strong>{profile.postsCount}</strong>{" "}
+              <span style={{ color: "#262626" }}>постов</span>
             </div>
             <div>
-              <h4 style={{ margin: 0 }}>{profile.followersCount}</h4>
-              <small className="text-muted">подписчиков</small>
+              <strong>{profile.followersCount}</strong>{" "}
+              <span style={{ color: "#262626" }}>подписчиков</span>
             </div>
             <div>
-              <h4 style={{ margin: 0 }}>{profile.followingCount}</h4>
-              <small className="text-muted">подписок</small>
+              <strong>{profile.followingCount}</strong>{" "}
+              <span style={{ color: "#262626" }}>подписок</span>
             </div>
             <div>
-              <h4 style={{ margin: 0 }}>{profile.likesCount}</h4>
-              <small className="text-muted">лайков</small>
+              <strong>{profile.likesCount}</strong>{" "}
+              <span style={{ color: "#262626" }}>лайков</span>
             </div>
+          </div>
+
+          <div>
+            <p style={{ margin: 0, fontSize: "14px" }}>
+              <strong>{profile.name}</strong>
+            </p>
+            <p style={{ margin: 0, color: "#8e8e8e", fontSize: "14px" }}>
+              {profile.bio || "Без описания"}
+            </p>
           </div>
         </div>
       </div>
 
-      <h3>📝 Посты ({profile.posts.length})</h3>
-      {profile.posts.length === 0 && <p className="text-muted">Пока нет постов</p>}
-      {profile.posts.map((post) => (
-        <div key={post.id} className="card mb-2">
-          <div className="card-body">
-            <h5>
-              <Link to={`/posts/${post.id}`} style={{ textDecoration: "none" }}>
-                {post.title}
+      {/* Сетка постов */}
+      <div style={{ padding: "30px 0" }}>
+        <h3 style={{ textAlign: "center", fontSize: "12px", letterSpacing: "1px", color: "#8e8e8e", marginBottom: "20px" }}>
+          📷 ПОСТЫ
+        </h3>
+
+        {profile.posts.length === 0 ? (
+          <p style={{ textAlign: "center", color: "#8e8e8e", padding: "40px" }}>
+            Пока нет постов
+          </p>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "4px",
+            }}
+          >
+            {profile.posts.map((post) => (
+              <Link
+                key={post.id}
+                to={`/posts/${post.id}`}
+                style={{
+                  aspectRatio: "1",
+                  background: "linear-gradient(135deg, #667eea, #764ba2)",
+                  borderRadius: "4px",
+                  padding: "15px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  color: "white",
+                  overflow: "hidden",
+                  textDecoration: "none",
+                }}
+              >
+                <h5 style={{ fontSize: "14px", margin: 0, overflow: "hidden" }}>
+                  {post.title}
+                </h5>
+                <div style={{ fontSize: "12px" }}>❤️ {post.likesCount}</div>
               </Link>
-            </h5>
-            <p className="text-muted small">
-              ❤️ {post.likesCount} · {new Date(post.created_at).toLocaleString("ru")}
-            </p>
-            <p>{post.content.substring(0, 100)}...</p>
+            ))}
           </div>
-        </div>
-      ))}
+        )}
+      </div>
     </div>
   );
 };

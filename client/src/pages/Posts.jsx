@@ -38,32 +38,83 @@ const Posts = () => {
   if (loading) return <div className="container mt-5">Загрузка...</div>;
 
   return (
-    <div className="container" style={{ marginTop: "30px", maxWidth: "700px" }}>
-      <h1 style={{ marginBottom: "30px" }}>📰 Лента</h1>
-      {posts.length === 0 && <p>Пока нет постов</p>}
+    <div className="container" style={{ maxWidth: "540px", marginTop: "24px" }}>
+      {posts.length === 0 && (
+        <div className="insta-card" style={{ padding: "60px", textAlign: "center" }}>
+          <h4>Пока нет постов</h4>
+          <p className="text-muted">Создай первый пост!</p>
+        </div>
+      )}
+
       {posts.map((post) => (
-        <div key={post.id} className="card mb-4" style={{ borderRadius: "12px", boxShadow: "0 2px 10px rgba(0,0,0,0.08)" }}>
-          <div className="card-body">
-            <h3 style={{ marginBottom: "10px" }}>
-              <Link to={`/posts/${post.id}`} style={{ textDecoration: "none", color: "#333" }}>
-                {post.title}
-              </Link>
-            </h3>
-            <p className="text-muted small">
-              ✍️ <Link to={`/users/${post.author.id}`} style={{ color: "#667eea", textDecoration: "none", fontWeight: "bold" }}>{post.author.name}</Link> · {new Date(post.created_at).toLocaleString("ru")}
-            </p>
-            <p>{post.content.substring(0, 150)}{post.content.length > 150 ? "..." : ""}</p>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "15px" }}>
-              <button
-                onClick={() => toggleLike(post.id)}
-                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer" }}
+        <div key={post.id} className="insta-card">
+          {/* Шапка карточки: автор */}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px" }}>
+            <Link to={`/users/${post.author.id}`} style={{ textDecoration: "none" }}>
+              <div className="avatar">
+                {post.author.name.charAt(0).toUpperCase()}
+              </div>
+            </Link>
+            <div style={{ flex: 1 }}>
+              <Link
+                to={`/users/${post.author.id}`}
+                style={{ fontWeight: "600", fontSize: "14px", color: "#262626" }}
               >
-                {likedPosts[post.id] ? "❤️" : "🤍"} {post.likesCount}
-              </button>
-              <Link to={`/posts/${post.id}`} className="btn btn-sm btn-primary">
-                Читать →
+                {post.author.name}
               </Link>
+              <div style={{ fontSize: "12px", color: "#8e8e8e" }}>
+                {new Date(post.created_at).toLocaleString("ru")}
+              </div>
             </div>
+          </div>
+
+          {/* Заголовок поста */}
+          <div style={{ padding: "0 14px 12px" }}>
+            <Link
+              to={`/posts/${post.id}`}
+              style={{ fontSize: "18px", fontWeight: "600", color: "#262626" }}
+            >
+              {post.title}
+            </Link>
+          </div>
+
+          {/* Текст поста */}
+          <div style={{ padding: "0 14px 14px", fontSize: "15px", lineHeight: "1.5" }}>
+            {post.content.substring(0, 200)}
+            {post.content.length > 200 ? "..." : ""}
+          </div>
+
+          {/* Кнопки действий */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "16px",
+              padding: "12px 14px",
+              borderTop: "1px solid #efefef",
+            }}
+          >
+            <button
+              onClick={() => toggleLike(post.id)}
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: "24px",
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              {likedPosts[post.id] ? "❤️" : "🤍"}
+            </button>
+            <span style={{ fontSize: "14px", fontWeight: "600" }}>
+              {post.likesCount} {post.likesCount === 1 ? "лайк" : "лайков"}
+            </span>
+            <Link
+              to={`/posts/${post.id}`}
+              style={{ marginLeft: "auto", fontSize: "14px", fontWeight: "600" }}
+            >
+              Читать →
+            </Link>
           </div>
         </div>
       ))}
