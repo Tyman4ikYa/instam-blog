@@ -22,7 +22,12 @@ const Header = () => {
               <Link to="/posts/new" style={{ color: "white", textDecoration: "none" }}>
                 + Новый пост
               </Link>
-              <span style={{ color: "#ffd6d6" }}>Привет, {user.name}</span>
+              <Link
+                to={`/users/${user.id}`}
+                style={{ color: "#ffd6d6", textDecoration: "none", fontWeight: "bold" }}
+              >
+                👤 {user.name}
+              </Link>
               <button onClick={handleLogout} className="btn btn-sm btn-outline-light">
                 Выйти
               </button>

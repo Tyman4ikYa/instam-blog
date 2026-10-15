@@ -50,7 +50,7 @@ const Posts = () => {
               </Link>
             </h3>
             <p className="text-muted small">
-              ✍️ {post.author.name} · {new Date(post.created_at).toLocaleString("ru")}
+              ✍️ <Link to={`/users/${post.author.id}`} style={{ color: "#667eea", textDecoration: "none", fontWeight: "bold" }}>{post.author.name}</Link> · {new Date(post.created_at).toLocaleString("ru")}
             </p>
             <p>{post.content.substring(0, 150)}{post.content.length > 150 ? "..." : ""}</p>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "15px" }}>

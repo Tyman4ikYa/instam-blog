@@ -38,7 +38,7 @@ router.post("/register", async (req, res) => {
   // Получаем id нового юзера
   const result = db.exec("SELECT id FROM users WHERE email = ?", [email]);
   const userId = result[0].values[0][0] as number;
-
+  
   // Создаём токен
   const token = generateToken(userId, email);
 

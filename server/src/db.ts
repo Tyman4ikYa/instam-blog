@@ -9,7 +9,6 @@ let db: Database;
 export async function initDb() {
   const SQL = await initSqlJs();
 
-  // Если файл БД существует — загружаем его
   if (fs.existsSync(DB_PATH)) {
     const fileBuffer = fs.readFileSync(DB_PATH);
     db = new SQL.Database(fileBuffer);
@@ -17,13 +16,13 @@ export async function initDb() {
     db = new SQL.Database();
   }
 
-  // Создаём таблицы
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      bio TEXT DEFAULT '',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -56,13 +55,22 @@ export async function initDb() {
       FOREIGN KEY (post_id) REFERENCES posts(id),
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
+
+    CREATE TABLE IF NOT EXISTS follows (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      follower_id INTEGER NOT NULL,
+      following_id INTEGER NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(follower_id, following_id),
+      FOREIGN KEY (follower_id) REFERENCES users(id),
+      FOREIGN KEY (following_id) REFERENCES users(id)
+    );
   `);
 
   saveDb();
   console.log("База данных готова");
 }
 
-// Сохраняем БД в файл
 export function saveDb() {
   const data = db.export();
   const buffer = Buffer.from(data);
