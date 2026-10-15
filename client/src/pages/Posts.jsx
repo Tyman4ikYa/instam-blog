@@ -7,13 +7,19 @@ const Posts = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [likedPosts, setLikedPosts] = useState({});
+  const [search, setSearch] = useState("");
   const { user } = useAuth();
 
   useEffect(() => {
-    api.get("/posts")
-      .then((res) => setPosts(res.data))
-      .finally(() => setLoading(false));
-  }, []);
+    const timer = setTimeout(() => {
+      api
+        .get(`/posts?search=${encodeURIComponent(search)}`)
+        .then((res) => setPosts(res.data))
+        .finally(() => setLoading(false));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const toggleLike = async (postId) => {
     if (!user) {
@@ -24,25 +30,46 @@ const Posts = () => {
       if (likedPosts[postId]) {
         await api.delete(`/posts/${postId}/like`);
         setLikedPosts({ ...likedPosts, [postId]: false });
-        setPosts(posts.map((p) => p.id === postId ? { ...p, likesCount: p.likesCount - 1 } : p));
+        setPosts(
+          posts.map((p) =>
+            p.id === postId ? { ...p, likesCount: p.likesCount - 1 } : p
+          )
+        );
       } else {
         await api.post(`/posts/${postId}/like`);
         setLikedPosts({ ...likedPosts, [postId]: true });
-        setPosts(posts.map((p) => p.id === postId ? { ...p, likesCount: p.likesCount + 1 } : p));
+        setPosts(
+          posts.map((p) =>
+            p.id === postId ? { ...p, likesCount: p.likesCount + 1 } : p
+          )
+        );
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  if (loading) return <div className="container mt-5">Загрузка...</div>;
-
   return (
     <div className="container" style={{ maxWidth: "540px", marginTop: "24px" }}>
-      {posts.length === 0 && (
+      {/* Поиск */}
+      <div style={{ marginBottom: "20px" }}>
+        <input
+          type="text"
+          className="settings-input"
+          placeholder="🔍 Поиск постов..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      {loading && <p style={{ textAlign: "center" }}>Загрузка...</p>}
+
+      {!loading && posts.length === 0 && (
         <div className="insta-card" style={{ padding: "60px", textAlign: "center" }}>
-          <h4>Пока нет постов</h4>
-          <p className="text-muted">Создай первый пост!</p>
+          <h4>{search ? "Ничего не найдено" : "Пока нет постов"}</h4>
+          <p className="text-muted">
+            {search ? "Попробуй другой запрос" : "Создай первый пост!"}
+          </p>
         </div>
       )}
 
@@ -58,11 +85,11 @@ const Posts = () => {
             <div style={{ flex: 1 }}>
               <Link
                 to={`/users/${post.author.id}`}
-                style={{ fontWeight: "600", fontSize: "14px", color: "#262626" }}
+                style={{ fontWeight: "600", fontSize: "14px", color: "var(--text)" }}
               >
                 {post.author.name}
               </Link>
-              <div style={{ fontSize: "12px", color: "#8e8e8e" }}>
+              <div style={{ fontSize: "12px", color: "var(--text-light)" }}>
                 {new Date(post.created_at).toLocaleString("ru")}
               </div>
             </div>
@@ -72,7 +99,7 @@ const Posts = () => {
           <div style={{ padding: "0 14px 12px" }}>
             <Link
               to={`/posts/${post.id}`}
-              style={{ fontSize: "18px", fontWeight: "600", color: "#262626" }}
+              style={{ fontSize: "18px", fontWeight: "600", color: "var(--text)" }}
             >
               {post.title}
             </Link>
@@ -91,7 +118,7 @@ const Posts = () => {
               alignItems: "center",
               gap: "16px",
               padding: "12px 14px",
-              borderTop: "1px solid #efefef",
+              borderTop: "1px solid var(--border)",
             }}
           >
             <button

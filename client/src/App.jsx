@@ -1,3 +1,5 @@
+import Admin from "./pages/Admin";
+import Users from "./pages/Users";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Header from "./components/Header";
@@ -21,8 +23,10 @@ function App() {
       <Routes>
         <Route path="/" element={<Posts />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="/register" element={<Register />} />
         <Route path="/posts/:id" element={<PostDetail />} />
+        <Route path="/users" element={<Users />} />
         <Route path="/users/:id" element={<Profile />} />
         <Route path="/posts/new" element={
           <ProtectedRoute><PostForm /></ProtectedRoute>

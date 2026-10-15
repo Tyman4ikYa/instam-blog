@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import api from "../api/api";
 
 const Settings = ({ onClose }) => {
   const { user, login, register, logout } = useAuth();
   const navigate = useNavigate();
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
-  const [view, setView] = useState("main"); // main | login | register | privacy
+  const [view, setView] = useState("main");
 
-  // Форма входа/регистрации
-  const [email, setEmail] = useState("");
+  const [loginValue, setLoginValue] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -31,7 +31,7 @@ const Settings = ({ onClose }) => {
     e.preventDefault();
     setError("");
     try {
-      await login(email, password);
+      await login(loginValue, password);
       onClose();
       navigate("/");
     } catch (err) {
@@ -43,7 +43,7 @@ const Settings = ({ onClose }) => {
     e.preventDefault();
     setError("");
     try {
-      await register(name, email, password);
+      await register(name, username, email, password);
       onClose();
       navigate("/");
     } catch (err) {
@@ -57,6 +57,22 @@ const Settings = ({ onClose }) => {
     navigate("/");
   };
 
+  const goToAdmin = () => {
+    onClose();
+    navigate("/admin");
+  };
+
+  const goToUsers = () => {
+    onClose();
+    navigate("/users");
+  };
+
+  const getRoleBadge = (role) => {
+    if (role === "dev") return { text: "DEV", color: "#8b5cf6" };
+    if (role === "admin") return { text: "ADMIN", color: "#e74c3c" };
+    return null;
+  };
+
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
@@ -66,7 +82,6 @@ const Settings = ({ onClose }) => {
           <>
             <h2>⚙️ Настройки</h2>
 
-            {/* ТЕМА */}
             <div className="settings-section">
               <h3>🎨 Тема оформления</h3>
               <div className="theme-options">
@@ -81,13 +96,25 @@ const Settings = ({ onClose }) => {
               </div>
             </div>
 
-            {/* АККАУНТ */}
             <div className="settings-section">
               <h3>👤 Аккаунт</h3>
               {user ? (
                 <>
-                  <p style={{ marginBottom: "10px" }}>
-                    Вы вошли как <strong>{user.name}</strong>
+                  <p style={{ marginBottom: "6px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span>Вы вошли как <strong>{user.name}</strong></span>
+                    {getRoleBadge(user.role) && (
+                      <span style={{
+                        background: getRoleBadge(user.role).color,
+                        color: "white",
+                        padding: "2px 8px",
+                        borderRadius: "10px",
+                        fontSize: "11px",
+                        fontWeight: "bold"
+                      }}>{getRoleBadge(user.role).text}</span>
+                    )}
+                  </p>
+                  <p style={{ color: "var(--text-light)", fontSize: "13px", marginBottom: "10px" }}>
+                    @{user.username}
                   </p>
                   <button
                     className="settings-link"
@@ -95,6 +122,18 @@ const Settings = ({ onClose }) => {
                   >
                     👤 Мой профиль
                   </button>
+
+                  {(user.role === "admin" || user.role === "dev") && (
+                    <>
+                      <button className="settings-link" onClick={goToUsers}>
+                        👥 Все пользователи
+                      </button>
+                      <button className="settings-link" onClick={goToAdmin}>
+                        🛡️ Админ-панель
+                      </button>
+                    </>
+                  )}
+
                   <button className="settings-link" onClick={handleLogout}>
                     🚪 Выйти
                   </button>
@@ -107,25 +146,17 @@ const Settings = ({ onClose }) => {
                   <button className="settings-link" onClick={() => setView("register")}>
                     ✨ Зарегистрироваться
                   </button>
-                  <button className="settings-link" onClick={() => alert("Вход для админа — в разработке")}>
-                    🛡️ Вход для админа
-                  </button>
                 </>
               )}
             </div>
 
-            {/* КОНФИДЕНЦИАЛЬНОСТЬ */}
             <div className="settings-section">
               <h3>🔒 Конфиденциальность</h3>
               <button className="settings-link" onClick={() => setView("privacy")}>
                 Политика конфиденциальности
               </button>
-              <button className="settings-link" onClick={() => alert("Скоро!")}>
-                Безопасность
-              </button>
             </div>
 
-            {/* О ПРИЛОЖЕНИИ */}
             <div className="settings-section">
               <h3>ℹ️ О приложении</h3>
               <button className="settings-link" onClick={() => alert("InstAm v1.0\nСделано с ❤️")}>
@@ -137,18 +168,16 @@ const Settings = ({ onClose }) => {
 
         {view === "login" && (
           <>
-            <button className="settings-link" onClick={() => setView("main")}>
-              ← Назад
-            </button>
+            <button className="settings-link" onClick={() => setView("main")}>← Назад</button>
             <h2>🔑 Вход</h2>
             {error && <div style={{ color: "#e74c3c", marginBottom: "10px" }}>{error}</div>}
             <form onSubmit={handleLogin}>
               <input
                 className="settings-input"
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Email или ник"
+                value={loginValue}
+                onChange={(e) => setLoginValue(e.target.value)}
                 required
               />
               <input
@@ -168,9 +197,7 @@ const Settings = ({ onClose }) => {
 
         {view === "register" && (
           <>
-            <button className="settings-link" onClick={() => setView("main")}>
-              ← Назад
-            </button>
+            <button className="settings-link" onClick={() => setView("main")}>← Назад</button>
             <h2>✨ Регистрация</h2>
             {error && <div style={{ color: "#e74c3c", marginBottom: "10px" }}>{error}</div>}
             <form onSubmit={handleRegister}>
@@ -180,6 +207,14 @@ const Settings = ({ onClose }) => {
                 placeholder="Имя"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                required
+              />
+              <input
+                className="settings-input"
+                type="text"
+                placeholder="Ник (латиница, 3-20)"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase())}
                 required
               />
               <input
@@ -207,9 +242,7 @@ const Settings = ({ onClose }) => {
 
         {view === "privacy" && (
           <>
-            <button className="settings-link" onClick={() => setView("main")}>
-              ← Назад
-            </button>
+            <button className="settings-link" onClick={() => setView("main")}>← Назад</button>
             <h2>🔒 Конфиденциальность</h2>
             <p style={{ lineHeight: "1.7", color: "var(--text-light)", fontSize: "14px" }}>
               InstAm заботится о ваших данных. Мы не передаём личную информацию третьим лицам.

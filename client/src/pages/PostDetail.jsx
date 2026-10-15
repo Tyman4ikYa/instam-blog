@@ -52,11 +52,33 @@ const PostDetail = () => {
   };
 
   const deleteComment = async (commentId) => {
+    if (!confirm("Удалить комментарий?")) return;
     await api.delete(`/comments/${commentId}`);
     setComments(comments.filter((c) => c.id !== commentId));
   };
 
+  const reportPost = async () => {
+    if (!user) {
+      alert("Войдите, чтобы пожаловаться");
+      return;
+    }
+    const reason = prompt("Причина жалобы:");
+    if (!reason || !reason.trim()) return;
+
+    try {
+      await api.post(`/posts/${id}/report`, { reason });
+      alert("Жалоба отправлена! Админ рассмотрит её.");
+    } catch (err) {
+      alert(err.response?.data?.error || "Ошибка отправки жалобы");
+    }
+  };
+
   if (!post) return <div className="container mt-5">Загрузка...</div>;
+
+  // Кто может удалять/менять?
+  const isAuthor = user && Number(user.id) === Number(post.author.id);
+  const isAdminOrDev = user && (user.role === "admin" || user.role === "dev");
+  const canDelete = isAuthor || isAdminOrDev;
 
   return (
     <div className="container" style={{ marginTop: "30px", maxWidth: "700px" }}>
@@ -66,16 +88,36 @@ const PostDetail = () => {
       </p>
       <p style={{ fontSize: "18px", lineHeight: "1.7" }}>{post.content}</p>
 
-      <div style={{ margin: "20px 0", display: "flex", gap: "15px", alignItems: "center" }}>
+      <div style={{ margin: "20px 0", display: "flex", gap: "15px", alignItems: "center", flexWrap: "wrap" }}>
         <button
           onClick={toggleLike}
           style={{ background: "none", border: "none", fontSize: "24px", cursor: "pointer" }}
         >
           {liked ? "❤️" : "🤍"} {post.likesCount}
         </button>
-        {user && Number(user.id) === Number(post.author.id) && (
-          <button className="btn btn-danger btn-sm" onClick={deletePost}>
-            Удалить пост
+
+        {canDelete && (
+          <button className="btn-insta-outline" onClick={deletePost}>
+            🗑 Удалить
+          </button>
+        )}
+
+        {/* Пожаловаться — только для обычных юзеров */}
+        {user && user.role === "user" && (
+          <button
+            onClick={reportPost}
+            style={{
+              background: "none",
+              border: "1px solid #e74c3c",
+              color: "#e74c3c",
+              padding: "6px 12px",
+              borderRadius: "8px",
+              fontSize: "13px",
+              cursor: "pointer",
+              marginLeft: "auto",
+            }}
+          >
+            🚨 Пожаловаться
           </button>
         )}
       </div>
@@ -93,31 +135,37 @@ const PostDetail = () => {
             placeholder="Ваш комментарий..."
             required
           />
-          <button type="submit" className="btn btn-primary btn-sm">Отправить</button>
+          <button type="submit" className="btn-insta">
+            Отправить
+          </button>
         </form>
       ) : (
         <p className="text-muted">Войдите, чтобы оставить комментарий</p>
       )}
 
-      {comments.map((c) => (
-        <div key={c.id} className="card mb-2">
-          <div className="card-body">
+      {comments.map((c) => {
+        const isCommentAuthor = user && Number(user.id) === Number(c.author.id);
+        const canDeleteComment = isCommentAuthor || isAdminOrDev;
+
+        return (
+          <div key={c.id} className="insta-card" style={{ padding: "15px" }}>
             <strong>{c.author.name}</strong>
-            <span className="text-muted ms-2">
+            <span className="text-muted ms-2" style={{ marginLeft: "10px", fontSize: "13px" }}>
               {c.created_at ? new Date(c.created_at).toLocaleString("ru") : "только что"}
             </span>
-            <p className="mt-2 mb-1">{c.text}</p>
-            {user && Number(user.id) === Number(c.author.id) && (
+            <p className="mt-2 mb-1" style={{ marginTop: "8px" }}>{c.text}</p>
+            {canDeleteComment && (
               <button
-                className="btn btn-sm btn-outline-danger"
+                className="btn-insta-outline"
+                style={{ fontSize: "12px", padding: "4px 10px", marginTop: "8px" }}
                 onClick={() => deleteComment(c.id)}
               >
-                Удалить
+                🗑 Удалить
               </button>
             )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

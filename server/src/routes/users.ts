@@ -1,34 +1,104 @@
 import { Router, Response } from "express";
 import { getDb, saveDb } from "../db";
-import { authMiddleware, AuthRequest } from "../middleware/authMiddleware";
+import { authMiddleware, adminMiddleware, AuthRequest } from "../middleware/authMiddleware";
 
 const router = Router();
 
-// ПРОФИЛЬ ЮЗЕРА (публично)
-// GET /api/users/:id
-router.get("/:id", (req, res) => {
+// СПИСОК ВСЕХ ЮЗЕРОВ (только admin/dev) с поиском
+router.get("/", authMiddleware, adminMiddleware, (req: AuthRequest, res) => {
   const db = getDb();
-  const userId = String(req.params.id);
+  const search = req.query.search ? String(req.query.search).toLowerCase() : "";
 
-  const result = db.exec(
-    "SELECT id, name, email, bio, created_at FROM users WHERE id = ?",
-    [userId]
-  );
+  let query = `
+    SELECT id, name, username, email, bio, role, created_at
+    FROM users
+  `;
+  const params: string[] = [];
+
+  if (search) {
+    query += ` WHERE LOWER(name) LIKE ? OR LOWER(username) LIKE ? OR LOWER(email) LIKE ?`;
+    const like = `%${search}%`;
+    params.push(like, like, like);
+  }
+
+  query += " ORDER BY id ASC";
+
+  const result = db.exec(query, params);
+  if (result.length === 0) return res.json([]);
+
+  const users = result[0].values.map((row) => ({
+    id: row[0],
+    name: row[1],
+    username: row[2],
+    email: row[3],
+    bio: row[4],
+    role: row[5],
+    created_at: row[6],
+  }));
+
+  res.json(users);
+});
+
+// НАЗНАЧИТЬ РОЛЬ (только dev)
+router.put("/:id/role", authMiddleware, (req: AuthRequest, res: Response) => {
+  const targetId = Number(req.params.id);
+  const { role } = req.body;
+
+  if (!["user", "admin", "dev"].includes(role)) {
+    return res.status(400).json({ error: "Неверная роль" });
+  }
+
+  const db = getDb();
+
+  const me = db.exec("SELECT role FROM users WHERE id = ?", [String(req.userId)]);
+  if (me.length === 0 || me[0].values[0][0] !== "dev") {
+    return res.status(403).json({ error: "Только разработчик может назначать роли" });
+  }
+
+  const target = db.exec("SELECT id FROM users WHERE id = ?", [String(targetId)]);
+  if (target.length === 0 || target[0].values.length === 0) {
+    return res.status(404).json({ error: "Пользователь не найден" });
+  }
+
+  if (targetId === Number(req.userId)) {
+    return res.status(400).json({ error: "Нельзя менять свою роль" });
+  }
+
+  db.run("UPDATE users SET role = ? WHERE id = ?", [role, String(targetId)]);
+  saveDb();
+
+  res.json({ success: true, role });
+});
+
+// ПРОФИЛЬ ЮЗЕРА (по id или нику) — ПУБЛИЧНО
+router.get("/:idOrUsername", (req, res) => {
+  const db = getDb();
+  const param = String(req.params.idOrUsername);
+  const isNumeric = /^\d+$/.test(param);
+
+  const result = isNumeric
+    ? db.exec(
+        "SELECT id, name, username, email, bio, role, created_at FROM users WHERE id = ?",
+        [param]
+      )
+    : db.exec(
+        "SELECT id, name, username, email, bio, role, created_at FROM users WHERE username = ?",
+        [param]
+      );
 
   if (result.length === 0 || result[0].values.length === 0) {
     return res.status(404).json({ error: "Пользователь не найден" });
   }
 
-  const [id, name, email, bio, created_at] = result[0].values[0];
+  const [id, name, username, email, bio, role, created_at] = result[0].values[0];
 
-  // Посты юзера
   const postsResult = db.exec(
     `SELECT p.id, p.title, p.content, p.created_at,
             (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes_count
      FROM posts p
      WHERE p.author_id = ?
      ORDER BY p.created_at DESC`,
-    [userId]
+    [String(id)]
   );
 
   const posts =
@@ -42,33 +112,32 @@ router.get("/:id", (req, res) => {
           likesCount: r[4],
         }));
 
-  // Подписчики (кто подписан на меня)
   const followersResult = db.exec(
     "SELECT COUNT(*) FROM follows WHERE following_id = ?",
-    [userId]
+    [String(id)]
   );
   const followersCount = followersResult[0].values[0][0] as number;
 
-  // Подписки (на кого я подписан)
   const followingResult = db.exec(
     "SELECT COUNT(*) FROM follows WHERE follower_id = ?",
-    [userId]
+    [String(id)]
   );
   const followingCount = followingResult[0].values[0][0] as number;
 
-  // Всего лайков на моих постах
   const likesResult = db.exec(
     `SELECT COUNT(*) FROM likes 
      WHERE post_id IN (SELECT id FROM posts WHERE author_id = ?)`,
-    [userId]
+    [String(id)]
   );
   const likesCount = likesResult[0].values[0][0] as number;
 
   res.json({
     id,
     name,
+    username,
     email,
     bio,
+    role,
     created_at,
     posts,
     followersCount,
@@ -79,7 +148,6 @@ router.get("/:id", (req, res) => {
 });
 
 // ПОДПИСАТЬСЯ / ОТПИСАТЬСЯ
-// POST /api/users/:id/follow
 router.post("/:id/follow", authMiddleware, (req: AuthRequest, res: Response) => {
   const targetId = Number(req.params.id);
   const myId = Number(req.userId);
@@ -89,21 +157,17 @@ router.post("/:id/follow", authMiddleware, (req: AuthRequest, res: Response) => 
   }
 
   const db = getDb();
-
-  // Проверяем, что юзер существует
   const check = db.exec("SELECT id FROM users WHERE id = ?", [String(targetId)]);
   if (check.length === 0 || check[0].values.length === 0) {
     return res.status(404).json({ error: "Пользователь не найден" });
   }
 
-  // Проверяем, не подписан ли уже
   const existing = db.exec(
     "SELECT id FROM follows WHERE follower_id = ? AND following_id = ?",
     [String(myId), String(targetId)]
   );
 
   if (existing.length > 0 && existing[0].values.length > 0) {
-    // Уже подписан → отписываемся
     db.run("DELETE FROM follows WHERE follower_id = ? AND following_id = ?", [
       String(myId),
       String(targetId),
@@ -112,7 +176,6 @@ router.post("/:id/follow", authMiddleware, (req: AuthRequest, res: Response) => 
     return res.json({ following: false });
   }
 
-  // Подписываемся
   db.run("INSERT INTO follows (follower_id, following_id) VALUES (?, ?)", [
     String(myId),
     String(targetId),
@@ -123,7 +186,6 @@ router.post("/:id/follow", authMiddleware, (req: AuthRequest, res: Response) => 
 });
 
 // ПРОВЕРИТЬ, ПОДПИСАН ЛИ Я
-// GET /api/users/:id/is-following
 router.get("/:id/is-following", authMiddleware, (req: AuthRequest, res: Response) => {
   const targetId = Number(req.params.id);
   const myId = Number(req.userId);
@@ -138,8 +200,7 @@ router.get("/:id/is-following", authMiddleware, (req: AuthRequest, res: Response
   res.json({ isFollowing });
 });
 
-// ОБНОВИТЬ BIO (описание профиля)
-// PUT /api/users/me/bio
+// ОБНОВИТЬ BIO
 router.put("/me/bio", authMiddleware, (req: AuthRequest, res: Response) => {
   const { bio } = req.body;
 

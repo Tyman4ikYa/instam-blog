@@ -22,7 +22,7 @@ router.post("/posts/:postId/comments", authMiddleware, (req: AuthRequest, res: R
 
   db.run(
     "INSERT INTO comments (text, post_id, author_id, created_at) VALUES (?, ?, ?, ?)",
-    [text, postId, req.userId!, new Date().toISOString()]
+    [text, postId, String(req.userId), new Date().toISOString()]
   );
 
   const result = db.exec("SELECT last_insert_rowid() as id");
@@ -38,7 +38,7 @@ router.post("/posts/:postId/comments", authMiddleware, (req: AuthRequest, res: R
   });
 });
 
-// УДАЛИТЬ КОММЕНТАРИЙ
+// УДАЛИТЬ КОММЕНТАРИЙ (автор ИЛИ admin/dev)
 router.delete("/comments/:id", authMiddleware, (req: AuthRequest, res: Response) => {
   const commentId = String(req.params.id);
   const db = getDb();
@@ -48,7 +48,15 @@ router.delete("/comments/:id", authMiddleware, (req: AuthRequest, res: Response)
     return res.status(404).json({ error: "Комментарий не найден" });
   }
 
-  if (Number(check[0].values[0][0]) !== Number(req.userId)) {
+  const authorId = Number(check[0].values[0][0]);
+
+  const userResult = db.exec("SELECT role FROM users WHERE id = ?", [String(req.userId)]);
+  const role = userResult.length > 0 ? userResult[0].values[0][0] : "user";
+
+  const isAuthor = authorId === Number(req.userId);
+  const isModerator = role === "admin" || role === "dev";
+
+  if (!isAuthor && !isModerator) {
     return res.status(403).json({ error: "Можно удалять только свои комментарии" });
   }
 

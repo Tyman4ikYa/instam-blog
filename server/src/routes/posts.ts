@@ -4,18 +4,30 @@ import { authMiddleware, AuthRequest } from "../middleware/authMiddleware";
 
 const router = Router();
 
-// ПОЛУЧИТЬ ВСЕ ПОСТЫ
+// ПОЛУЧИТЬ ВСЕ ПОСТЫ (с поиском)
 router.get("/", (req, res) => {
   const db = getDb();
-  const result = db.exec(`
+  const search = req.query.search ? String(req.query.search).toLowerCase() : "";
+
+  let query = `
     SELECT 
       p.id, p.title, p.content, p.created_at,
       u.id as author_id, u.name as author_name,
       (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes_count
     FROM posts p
     JOIN users u ON u.id = p.author_id
-    ORDER BY p.created_at DESC
-  `);
+  `;
+  const params: string[] = [];
+
+  if (search) {
+    query += ` WHERE LOWER(p.title) LIKE ? OR LOWER(p.content) LIKE ?`;
+    const like = `%${search}%`;
+    params.push(like, like);
+  }
+
+  query += " ORDER BY p.created_at DESC";
+
+  const result = db.exec(query, params);
 
   if (result.length === 0) {
     return res.json([]);
@@ -33,7 +45,7 @@ router.get("/", (req, res) => {
   res.json(posts);
 });
 
-// ПОЛУЧИТЬ ОДИН ПОСТ
+// ПОЛУЧИТЬ ОДИН ПОСТ + КОММЕНТАРИИ
 router.get("/:id", (req, res) => {
   const db = getDb();
   const postId = String(req.params.id);
@@ -136,7 +148,7 @@ router.put("/:id", authMiddleware, (req: AuthRequest, res: Response) => {
   res.json({ id: Number(postId), title, content });
 });
 
-// УДАЛИТЬ ПОСТ
+// УДАЛИТЬ ПОСТ (автор ИЛИ admin/dev)
 router.delete("/:id", authMiddleware, (req: AuthRequest, res: Response) => {
   const postId = String(req.params.id);
   const db = getDb();
@@ -146,7 +158,16 @@ router.delete("/:id", authMiddleware, (req: AuthRequest, res: Response) => {
     return res.status(404).json({ error: "Пост не найден" });
   }
 
-  if (Number(check[0].values[0][0]) !== Number(req.userId)) {
+  const authorId = Number(check[0].values[0][0]);
+
+  // Проверяем роль текущего юзера
+  const userResult = db.exec("SELECT role FROM users WHERE id = ?", [String(req.userId)]);
+  const role = userResult.length > 0 ? userResult[0].values[0][0] : "user";
+
+  const isAuthor = authorId === Number(req.userId);
+  const isModerator = role === "admin" || role === "dev";
+
+  if (!isAuthor && !isModerator) {
     return res.status(403).json({ error: "Можно удалять только свои посты" });
   }
 
@@ -164,16 +185,14 @@ router.post("/:id/like", authMiddleware, (req: AuthRequest, res: Response) => {
   const postId = String(req.params.id);
   const db = getDb();
 
-  // Проверяем, что пост есть
   const check = db.exec("SELECT id FROM posts WHERE id = ?", [postId]);
   if (check.length === 0 || check[0].values.length === 0) {
     return res.status(404).json({ error: "Пост не найден" });
   }
 
-  // Проверяем, не лайкал ли уже
   const existing = db.exec(
     "SELECT id FROM likes WHERE post_id = ? AND user_id = ?",
-    [postId, req.userId!]
+    [postId, String(req.userId)]
   );
 
   if (existing.length > 0 && existing[0].values.length > 0) {
@@ -182,7 +201,7 @@ router.post("/:id/like", authMiddleware, (req: AuthRequest, res: Response) => {
 
   db.run("INSERT INTO likes (post_id, user_id) VALUES (?, ?)", [
     postId,
-    req.userId!,
+    String(req.userId),
   ]);
 
   saveDb();
@@ -197,11 +216,29 @@ router.delete("/:id/like", authMiddleware, (req: AuthRequest, res: Response) => 
 
   db.run("DELETE FROM likes WHERE post_id = ? AND user_id = ?", [
     postId,
-    req.userId!,
+    String(req.userId),
   ]);
 
   saveDb();
 
+  res.json({ success: true });
+});
+
+// ПОЖАЛОВАТЬСЯ НА ПОСТ
+router.post("/:id/report", authMiddleware, (req: AuthRequest, res: Response) => {
+  const { reason } = req.body;
+  const postId = String(req.params.id);
+
+  if (!reason || !reason.trim()) {
+    return res.status(400).json({ error: "Укажите причину" });
+  }
+
+  const db = getDb();
+  db.run(
+    "INSERT INTO reports (reporter_id, target_type, target_id, reason) VALUES (?, ?, ?, ?)",
+    [String(req.userId), "post", postId, reason]
+  );
+  saveDb();
   res.json({ success: true });
 });
 
