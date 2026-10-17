@@ -23,6 +23,7 @@ export async function initDb() {
       email TEXT UNIQUE NOT NULL,
       username TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      avatar TEXT DEFAULT '',
       bio TEXT DEFAULT '',
       role TEXT DEFAULT 'user',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -32,6 +33,7 @@ export async function initDb() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       content TEXT NOT NULL,
+      image TEXT DEFAULT '',
       author_id INTEGER NOT NULL,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -79,14 +81,6 @@ export async function initDb() {
       FOREIGN KEY (reporter_id) REFERENCES users(id)
     );
   `);
-
-  // Создаём аккаунт разработчика (если его нет)
-  const devCheck = db.exec("SELECT id FROM users WHERE email = ?", ["dev@instam.ru"]);
-  if (devCheck.length === 0 || devCheck[0].values.length === 0) {
-    // Хеш для "dev12345" (bcrypt) — сгенерируем в auth.ts при первом запуске
-    // Здесь просто заглушка, обновим после
-    console.log("⚠️ Аккаунт разработчика ещё не создан");
-  }
 
   saveDb();
   console.log("База данных готова");

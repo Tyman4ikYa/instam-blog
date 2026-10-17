@@ -40,7 +40,7 @@ const PostDetail = () => {
     const res = await api.post(`/posts/${id}/comments`, { text });
     setComments([
       ...comments,
-      { ...res.data, author: { id: user.id, name: user.name } },
+      { ...res.data, author: { id: user.id, name: user.name, avatar: user.avatar } },
     ]);
     setText("");
   };
@@ -67,26 +67,57 @@ const PostDetail = () => {
 
     try {
       await api.post(`/posts/${id}/report`, { reason });
-      alert("Жалоба отправлена! Админ рассмотрит её.");
+      alert("Жалоба отправлена!");
     } catch (err) {
-      alert(err.response?.data?.error || "Ошибка отправки жалобы");
+      alert(err.response?.data?.error || "Ошибка");
     }
   };
 
   if (!post) return <div className="container mt-5">Загрузка...</div>;
 
-  // Кто может удалять/менять?
   const isAuthor = user && Number(user.id) === Number(post.author.id);
   const isAdminOrDev = user && (user.role === "admin" || user.role === "dev");
   const canDelete = isAuthor || isAdminOrDev;
 
   return (
     <div className="container" style={{ marginTop: "30px", maxWidth: "700px" }}>
+      {/* Шапка: автор */}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "15px" }}>
+        {post.author.avatar ? (
+          <img
+            src={`http://localhost:4000${post.author.avatar}`}
+            alt="avatar"
+            style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }}
+          />
+        ) : (
+          <div className="avatar">{post.author.name.charAt(0).toUpperCase()}</div>
+        )}
+        <div>
+          <strong>{post.author.name}</strong>
+          <div style={{ fontSize: "12px", color: "var(--text-light)" }}>
+            {new Date(post.created_at).toLocaleString("ru")}
+          </div>
+        </div>
+      </div>
+
       <h1>{post.title}</h1>
-      <p className="text-muted">
-        ✍️ {post.author.name} · {new Date(post.created_at).toLocaleString("ru")}
-      </p>
       <p style={{ fontSize: "18px", lineHeight: "1.7" }}>{post.content}</p>
+
+      {/* Фото поста */}
+      {post.image && (
+        <img
+          src={`http://localhost:4000${post.image}`}
+          alt="post"
+          style={{
+            width: "100%",
+            maxHeight: "500px",
+            objectFit: "cover",
+            borderRadius: "12px",
+            marginTop: "15px",
+            marginBottom: "15px",
+          }}
+        />
+      )}
 
       <div style={{ margin: "20px 0", display: "flex", gap: "15px", alignItems: "center", flexWrap: "wrap" }}>
         <button
@@ -102,7 +133,6 @@ const PostDetail = () => {
           </button>
         )}
 
-        {/* Пожаловаться — только для обычных юзеров */}
         {user && user.role === "user" && (
           <button
             onClick={reportPost}
@@ -149,15 +179,28 @@ const PostDetail = () => {
 
         return (
           <div key={c.id} className="insta-card" style={{ padding: "15px" }}>
-            <strong>{c.author.name}</strong>
-            <span className="text-muted ms-2" style={{ marginLeft: "10px", fontSize: "13px" }}>
-              {c.created_at ? new Date(c.created_at).toLocaleString("ru") : "только что"}
-            </span>
-            <p className="mt-2 mb-1" style={{ marginTop: "8px" }}>{c.text}</p>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+              {c.author.avatar ? (
+                <img
+                  src={`http://localhost:4000${c.author.avatar}`}
+                  alt="avatar"
+                  style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }}
+                />
+              ) : (
+                <div className="avatar" style={{ width: "32px", height: "32px", fontSize: "14px" }}>
+                  {c.author.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <strong>{c.author.name}</strong>
+              <span style={{ color: "var(--text-light)", fontSize: "12px" }}>
+                {c.created_at ? new Date(c.created_at).toLocaleString("ru") : "только что"}
+              </span>
+            </div>
+            <p style={{ marginBottom: "8px" }}>{c.text}</p>
             {canDeleteComment && (
               <button
                 className="btn-insta-outline"
-                style={{ fontSize: "12px", padding: "4px 10px", marginTop: "8px" }}
+                style={{ fontSize: "12px", padding: "4px 10px" }}
                 onClick={() => deleteComment(c.id)}
               >
                 🗑 Удалить

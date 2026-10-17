@@ -11,8 +11,8 @@ router.get("/", (req, res) => {
 
   let query = `
     SELECT 
-      p.id, p.title, p.content, p.created_at,
-      u.id as author_id, u.name as author_name,
+      p.id, p.title, p.content, p.image, p.created_at,
+      u.id as author_id, u.name as author_name, u.avatar as author_avatar, u.username as author_username,
       (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes_count
     FROM posts p
     JOIN users u ON u.id = p.author_id
@@ -37,9 +37,10 @@ router.get("/", (req, res) => {
     id: row[0],
     title: row[1],
     content: row[2],
-    created_at: row[3],
-    author: { id: row[4], name: row[5] },
-    likesCount: row[6],
+    image: row[3],
+    created_at: row[4],
+    author: { id: row[5], name: row[6], avatar: row[7], username: row[8] },
+    likesCount: row[9],
   }));
 
   res.json(posts);
@@ -51,8 +52,8 @@ router.get("/:id", (req, res) => {
   const postId = String(req.params.id);
 
   const postResult = db.exec(
-    `SELECT p.id, p.title, p.content, p.created_at,
-            u.id as author_id, u.name as author_name,
+    `SELECT p.id, p.title, p.content, p.image, p.created_at,
+            u.id as author_id, u.name as author_name, u.avatar as author_avatar, u.username as author_username,
             (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes_count
      FROM posts p
      JOIN users u ON u.id = p.author_id
@@ -69,14 +70,15 @@ router.get("/:id", (req, res) => {
     id: row[0],
     title: row[1],
     content: row[2],
-    created_at: row[3],
-    author: { id: row[4], name: row[5] },
-    likesCount: row[6],
+    image: row[3],
+    created_at: row[4],
+    author: { id: row[5], name: row[6], avatar: row[7], username: row[8] },
+    likesCount: row[9],
   };
 
   const commentsResult = db.exec(
     `SELECT c.id, c.text, c.created_at,
-            u.id as author_id, u.name as author_name
+            u.id as author_id, u.name as author_name, u.avatar as author_avatar, u.username as author_username
      FROM comments c
      JOIN users u ON u.id = c.author_id
      WHERE c.post_id = ?
@@ -91,7 +93,7 @@ router.get("/:id", (req, res) => {
           id: r[0],
           text: r[1],
           created_at: r[2],
-          author: { id: r[3], name: r[4] },
+          author: { id: r[3], name: r[4], avatar: r[5], username: r[6] },
         }));
 
   res.json({ ...post, comments });
@@ -99,7 +101,7 @@ router.get("/:id", (req, res) => {
 
 // СОЗДАТЬ ПОСТ
 router.post("/", authMiddleware, (req: AuthRequest, res: Response) => {
-  const { title, content } = req.body;
+  const { title, content, image } = req.body;
 
   if (!title || !content) {
     return res.status(400).json({ error: "Заголовок и текст обязательны" });
@@ -107,8 +109,8 @@ router.post("/", authMiddleware, (req: AuthRequest, res: Response) => {
 
   const db = getDb();
   db.run(
-    "INSERT INTO posts (title, content, author_id, created_at) VALUES (?, ?, ?, ?)",
-    [title, content, req.userId!, new Date().toISOString()]
+    "INSERT INTO posts (title, content, image, author_id, created_at) VALUES (?, ?, ?, ?, ?)",
+    [title, content, image || "", req.userId!, new Date().toISOString()]
   );
 
   const result = db.exec("SELECT last_insert_rowid() as id");
@@ -116,12 +118,12 @@ router.post("/", authMiddleware, (req: AuthRequest, res: Response) => {
 
   saveDb();
 
-  res.status(201).json({ id: newId, title, content });
+  res.status(201).json({ id: newId, title, content, image });
 });
 
 // ОБНОВИТЬ ПОСТ
 router.put("/:id", authMiddleware, (req: AuthRequest, res: Response) => {
-  const { title, content } = req.body;
+  const { title, content, image } = req.body;
   const postId = String(req.params.id);
 
   if (!title || !content) {
@@ -139,13 +141,13 @@ router.put("/:id", authMiddleware, (req: AuthRequest, res: Response) => {
   }
 
   db.run(
-    "UPDATE posts SET title = ?, content = ?, updated_at = ? WHERE id = ?",
-    [title, content, new Date().toISOString(), postId]
+    "UPDATE posts SET title = ?, content = ?, image = ?, updated_at = ? WHERE id = ?",
+    [title, content, image || "", new Date().toISOString(), postId]
   );
 
   saveDb();
 
-  res.json({ id: Number(postId), title, content });
+  res.json({ id: Number(postId), title, content, image });
 });
 
 // УДАЛИТЬ ПОСТ (автор ИЛИ admin/dev)
@@ -160,7 +162,6 @@ router.delete("/:id", authMiddleware, (req: AuthRequest, res: Response) => {
 
   const authorId = Number(check[0].values[0][0]);
 
-  // Проверяем роль текущего юзера
   const userResult = db.exec("SELECT role FROM users WHERE id = ?", [String(req.userId)]);
   const role = userResult.length > 0 ? userResult[0].values[0][0] : "user";
 

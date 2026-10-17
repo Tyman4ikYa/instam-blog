@@ -50,7 +50,7 @@ const Posts = () => {
   };
 
   return (
-    <div className="container" style={{ maxWidth: "540px", marginTop: "24px" }}>
+    <div className="container" style={{ maxWidth: "600px", marginTop: "24px" }}>
       {/* Поиск */}
       <div style={{ marginBottom: "20px" }}>
         <input
@@ -74,13 +74,19 @@ const Posts = () => {
       )}
 
       {posts.map((post) => (
-        <div key={post.id} className="insta-card">
-          {/* Шапка карточки: автор */}
+        <div key={post.id} className="insta-card" style={{ marginBottom: "24px" }}>
+          {/* Шапка: автор */}
           <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px" }}>
             <Link to={`/users/${post.author.id}`} style={{ textDecoration: "none" }}>
-              <div className="avatar">
-                {post.author.name.charAt(0).toUpperCase()}
-              </div>
+              {post.author.avatar ? (
+                <img
+                  src={`http://localhost:4000${post.author.avatar}`}
+                  alt="avatar"
+                  style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }}
+                />
+              ) : (
+                <div className="avatar">{post.author.name.charAt(0).toUpperCase()}</div>
+              )}
             </Link>
             <div style={{ flex: 1 }}>
               <Link
@@ -95,20 +101,34 @@ const Posts = () => {
             </div>
           </div>
 
-          {/* Заголовок поста */}
-          <div style={{ padding: "0 14px 12px" }}>
+          {/* Фото поста */}
+          {post.image && (
+            <Link to={`/posts/${post.id}`}>
+              <img
+                src={`http://localhost:4000${post.image}`}
+                alt="post"
+                style={{
+                  width: "100%",
+                  maxHeight: "600px",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+            </Link>
+          )}
+
+          {/* Заголовок и текст */}
+          <div style={{ padding: "14px" }}>
             <Link
               to={`/posts/${post.id}`}
-              style={{ fontSize: "18px", fontWeight: "600", color: "var(--text)" }}
+              style={{ fontSize: "18px", fontWeight: "600", color: "var(--text)", textDecoration: "none" }}
             >
               {post.title}
             </Link>
-          </div>
-
-          {/* Текст поста */}
-          <div style={{ padding: "0 14px 14px", fontSize: "15px", lineHeight: "1.5" }}>
-            {post.content.substring(0, 200)}
-            {post.content.length > 200 ? "..." : ""}
+            <p style={{ fontSize: "15px", lineHeight: "1.5", marginTop: "8px", marginBottom: 0 }}>
+              {post.content.substring(0, 200)}
+              {post.content.length > 200 ? "..." : ""}
+            </p>
           </div>
 
           {/* Кнопки действий */}

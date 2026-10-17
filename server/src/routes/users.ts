@@ -10,7 +10,7 @@ router.get("/", authMiddleware, adminMiddleware, (req: AuthRequest, res) => {
   const search = req.query.search ? String(req.query.search).toLowerCase() : "";
 
   let query = `
-    SELECT id, name, username, email, bio, role, created_at
+    SELECT id, name, username, email, bio, role, avatar, created_at
     FROM users
   `;
   const params: string[] = [];
@@ -33,7 +33,8 @@ router.get("/", authMiddleware, adminMiddleware, (req: AuthRequest, res) => {
     email: row[3],
     bio: row[4],
     role: row[5],
-    created_at: row[6],
+    avatar: row[6],
+    created_at: row[7],
   }));
 
   res.json(users);
@@ -70,6 +71,36 @@ router.put("/:id/role", authMiddleware, (req: AuthRequest, res: Response) => {
   res.json({ success: true, role });
 });
 
+// ОБНОВИТЬ АВАТАРКУ
+router.put("/me/avatar", authMiddleware, (req: AuthRequest, res: Response) => {
+  const { avatar } = req.body;
+
+  if (typeof avatar !== "string") {
+    return res.status(400).json({ error: "avatar должен быть строкой (URL)" });
+  }
+
+  const db = getDb();
+  db.run("UPDATE users SET avatar = ? WHERE id = ?", [avatar, String(req.userId)]);
+  saveDb();
+
+  res.json({ success: true, avatar });
+});
+
+// ОБНОВИТЬ BIO
+router.put("/me/bio", authMiddleware, (req: AuthRequest, res: Response) => {
+  const { bio } = req.body;
+
+  if (typeof bio !== "string") {
+    return res.status(400).json({ error: "bio должен быть строкой" });
+  }
+
+  const db = getDb();
+  db.run("UPDATE users SET bio = ? WHERE id = ?", [bio, String(req.userId)]);
+  saveDb();
+
+  res.json({ success: true, bio });
+});
+
 // ПРОФИЛЬ ЮЗЕРА (по id или нику) — ПУБЛИЧНО
 router.get("/:idOrUsername", (req, res) => {
   const db = getDb();
@@ -78,11 +109,11 @@ router.get("/:idOrUsername", (req, res) => {
 
   const result = isNumeric
     ? db.exec(
-        "SELECT id, name, username, email, bio, role, created_at FROM users WHERE id = ?",
+        "SELECT id, name, username, email, bio, role, avatar, created_at FROM users WHERE id = ?",
         [param]
       )
     : db.exec(
-        "SELECT id, name, username, email, bio, role, created_at FROM users WHERE username = ?",
+        "SELECT id, name, username, email, bio, role, avatar, created_at FROM users WHERE username = ?",
         [param]
       );
 
@@ -90,10 +121,10 @@ router.get("/:idOrUsername", (req, res) => {
     return res.status(404).json({ error: "Пользователь не найден" });
   }
 
-  const [id, name, username, email, bio, role, created_at] = result[0].values[0];
+  const [id, name, username, email, bio, role, avatar, created_at] = result[0].values[0];
 
   const postsResult = db.exec(
-    `SELECT p.id, p.title, p.content, p.created_at,
+    `SELECT p.id, p.title, p.content, p.image, p.created_at,
             (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes_count
      FROM posts p
      WHERE p.author_id = ?
@@ -108,8 +139,9 @@ router.get("/:idOrUsername", (req, res) => {
           id: r[0],
           title: r[1],
           content: r[2],
-          created_at: r[3],
-          likesCount: r[4],
+          image: r[3],
+          created_at: r[4],
+          likesCount: r[5],
         }));
 
   const followersResult = db.exec(
@@ -138,6 +170,7 @@ router.get("/:idOrUsername", (req, res) => {
     email,
     bio,
     role,
+    avatar,
     created_at,
     posts,
     followersCount,
@@ -198,21 +231,6 @@ router.get("/:id/is-following", authMiddleware, (req: AuthRequest, res: Response
 
   const isFollowing = result.length > 0 && result[0].values.length > 0;
   res.json({ isFollowing });
-});
-
-// ОБНОВИТЬ BIO
-router.put("/me/bio", authMiddleware, (req: AuthRequest, res: Response) => {
-  const { bio } = req.body;
-
-  if (typeof bio !== "string") {
-    return res.status(400).json({ error: "bio должен быть строкой" });
-  }
-
-  const db = getDb();
-  db.run("UPDATE users SET bio = ? WHERE id = ?", [bio, String(req.userId)]);
-  saveDb();
-
-  res.json({ success: true, bio });
 });
 
 export default router;
