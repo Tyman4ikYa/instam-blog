@@ -38,17 +38,26 @@ router.post("/register", async (req, res) => {
     [name, username, email, passwordHash]
   );
 
-  const result = db.exec("SELECT id, role FROM users WHERE email = ?", [email]);
-  const userId = result[0].values[0][0] as number;
-  const role = result[0].values[0][1] as string;
+  const result = db.exec(
+    "SELECT id, name, username, email, avatar, role FROM users WHERE email = ?",
+    [email]
+  );
+  const [id, dbName, dbUsername, dbEmail, avatar, role] = result[0].values[0];
 
-  const token = generateToken(userId, email);
+  const token = generateToken(id as number, dbEmail as string);
 
   saveDb();
 
   res.json({
     token,
-    user: { id: userId, name, username, email, role },
+    user: {
+      id,
+      name: dbName,
+      username: dbUsername,
+      email: dbEmail,
+      avatar,
+      role,
+    },
   });
 });
 
@@ -62,7 +71,7 @@ router.post("/login", async (req, res) => {
 
   const db = getDb();
   const result = db.exec(
-    "SELECT id, name, username, email, password_hash, role FROM users WHERE email = ? OR username = ?",
+    "SELECT id, name, username, email, password_hash, avatar, role FROM users WHERE email = ? OR username = ?",
     [login, login]
   );
 
@@ -70,9 +79,16 @@ router.post("/login", async (req, res) => {
     return res.status(401).json({ error: "Неверный логин или пароль" });
   }
 
-  const [id, name, username, userEmail, passwordHash, role] = result[0].values[0] as [
-    number, string, string, string, string, string
-  ];
+  const [id, name, username, userEmail, passwordHash, avatar, role] =
+    result[0].values[0] as [
+      number,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string
+    ];
 
   const isValid = await comparePassword(password, passwordHash);
   if (!isValid) {
@@ -83,7 +99,7 @@ router.post("/login", async (req, res) => {
 
   res.json({
     token,
-    user: { id, name, username, email: userEmail, role },
+    user: { id, name, username, email: userEmail, avatar, role },
   });
 });
 
@@ -91,7 +107,7 @@ router.post("/login", async (req, res) => {
 router.get("/me", authMiddleware, (req: AuthRequest, res: Response) => {
   const db = getDb();
   const result = db.exec(
-    "SELECT id, name, username, email, role FROM users WHERE id = ?",
+    "SELECT id, name, username, email, avatar, role FROM users WHERE id = ?",
     [req.userId!]
   );
 
@@ -99,8 +115,8 @@ router.get("/me", authMiddleware, (req: AuthRequest, res: Response) => {
     return res.status(404).json({ error: "Пользователь не найден" });
   }
 
-  const [id, name, username, email, role] = result[0].values[0];
-  res.json({ id, name, username, email, role });
+  const [id, name, username, email, avatar, role] = result[0].values[0];
+  res.json({ id, name, username, email, avatar, role });
 });
 
 export default router;

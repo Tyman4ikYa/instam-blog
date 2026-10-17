@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Settings from "./Settings";
 
 const Header = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
@@ -83,14 +82,23 @@ const Header = () => {
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
-                  {user.avatar ? (
+                  {user.avatar && (
                     <img
                       src={`http://localhost:4000${user.avatar}`}
                       alt="avatar"
-                      style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }}
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                      }}
                     />
-                  ) : (
-                    <div className="avatar" style={{ width: "32px", height: "32px", fontSize: "14px" }}>
+                  )}
+                  {!user.avatar && (
+                    <div
+                      className="avatar"
+                      style={{ width: "32px", height: "32px", fontSize: "14px" }}
+                    >
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                   )}
