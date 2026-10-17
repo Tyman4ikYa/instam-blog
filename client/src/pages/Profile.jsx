@@ -51,7 +51,15 @@ const Profile = () => {
   return (
     <div className="container" style={{ maxWidth: "935px", marginTop: "30px" }}>
       {/* Шапка профиля */}
-      <div style={{ display: "flex", gap: "80px", padding: "20px 0 40px", borderBottom: "1px solid var(--border)" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "60px",
+          padding: "30px 0 40px",
+          borderBottom: "1px solid var(--border)",
+          flexWrap: "wrap",
+        }}
+      >
         <div style={{ display: "flex", justifyContent: "center", minWidth: "200px" }}>
           {profile.avatar ? (
             <img
@@ -67,9 +75,9 @@ const Profile = () => {
           )}
         </div>
 
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "20px" }}>
-            <h2 style={{ fontSize: "20px", fontWeight: "400", margin: 0 }}>
+        <div style={{ flex: 1, minWidth: "250px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "16px", flexWrap: "wrap" }}>
+            <h2 style={{ fontSize: "24px", fontWeight: "600", margin: 0 }}>
               {profile.name}
             </h2>
             {!isMyProfile && (
@@ -77,42 +85,39 @@ const Profile = () => {
                 className={isFollowing ? "btn-insta-outline" : "btn-insta"}
                 onClick={toggleFollow}
               >
-                {isFollowing ? "Отписаться" : "Подписаться"}
+                {isFollowing ? "✓ Отписаться" : "+ Подписаться"}
               </button>
             )}
             {isMyProfile && (
-              <span style={{ color: "var(--text-light)", fontSize: "14px" }}>Это вы</span>
+              <span style={{ color: "var(--text-light)", fontSize: "14px", fontWeight: "500" }}>
+                Это вы
+              </span>
             )}
           </div>
 
-          <div style={{ color: "var(--text-light)", fontSize: "14px", marginBottom: "15px" }}>
+          <div style={{ color: "var(--text-light)", fontSize: "14px", marginBottom: "20px" }}>
             @{profile.username}
           </div>
 
-          <div style={{ display: "flex", gap: "40px", marginBottom: "20px" }}>
-            <div>
-              <strong>{profile.postsCount}</strong>{" "}
-              <span style={{ color: "var(--text)" }}>постов</span>
-            </div>
-            <div>
-              <strong>{profile.followersCount}</strong>{" "}
-              <span style={{ color: "var(--text)" }}>подписчиков</span>
-            </div>
-            <div>
-              <strong>{profile.followingCount}</strong>{" "}
-              <span style={{ color: "var(--text)" }}>подписок</span>
-            </div>
-            <div>
-              <strong>{profile.likesCount}</strong>{" "}
-              <span style={{ color: "var(--text)" }}>лайков</span>
-            </div>
+          <div
+            style={{
+              display: "flex",
+              gap: "32px",
+              marginBottom: "24px",
+              fontSize: "15px",
+            }}
+          >
+            <div><strong>{profile.postsCount}</strong> <span style={{ color: "var(--text-light)" }}>постов</span></div>
+            <div><strong>{profile.followersCount}</strong> <span style={{ color: "var(--text-light)" }}>подписчиков</span></div>
+            <div><strong>{profile.followingCount}</strong> <span style={{ color: "var(--text-light)" }}>подписок</span></div>
+            <div><strong>{profile.likesCount}</strong> <span style={{ color: "var(--text-light)" }}>лайков</span></div>
           </div>
 
           <div>
-            <p style={{ margin: 0, fontSize: "14px" }}>
-              <strong>{profile.name}</strong>
+            <p style={{ margin: 0, fontSize: "14px", fontWeight: "600" }}>
+              {profile.name}
             </p>
-            <p style={{ margin: 0, color: "var(--text-light)", fontSize: "14px" }}>
+            <p style={{ margin: "4px 0 0", color: "var(--text-light)", fontSize: "14px" }}>
               {profile.bio || "Без описания"}
             </p>
           </div>
@@ -121,7 +126,16 @@ const Profile = () => {
 
       {/* Сетка постов */}
       <div style={{ padding: "30px 0" }}>
-        <h3 style={{ textAlign: "center", fontSize: "12px", letterSpacing: "1px", color: "var(--text-light)", marginBottom: "20px" }}>
+        <h3
+          style={{
+            textAlign: "center",
+            fontSize: "12px",
+            letterSpacing: "2px",
+            color: "var(--text-light)",
+            marginBottom: "24px",
+            fontWeight: "600",
+          }}
+        >
           📷 ПОСТЫ
         </h3>
 
@@ -130,49 +144,24 @@ const Profile = () => {
             Пока нет постов
           </p>
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "4px",
-            }}
-          >
+          <div className="posts-grid">
             {profile.posts.map((post) => (
-              <Link
-                key={post.id}
-                to={`/posts/${post.id}`}
-                style={{
-                  aspectRatio: "1",
-                  borderRadius: "4px",
-                  overflow: "hidden",
-                  position: "relative",
-                  display: "block",
-                }}
-              >
+              <Link key={post.id} to={`/posts/${post.id}`} className="post-tile">
                 {post.image ? (
-                  <img
-                    src={`http://localhost:4000${post.image}`}
-                    alt={post.title}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
-                  />
+                  <img src={`http://localhost:4000${post.image}`} alt={post.title} />
                 ) : (
                   <div
                     style={{
                       width: "100%",
                       height: "100%",
-                      background: "linear-gradient(135deg, #667eea, #764ba2)",
-                      padding: "15px",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
+                      padding: "15px",
                       color: "white",
                     }}
                   >
-                    <h5 style={{ fontSize: "14px", margin: 0, overflow: "hidden" }}>
+                    <h5 style={{ fontSize: "13px", margin: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
                       {post.title}
                     </h5>
                     <div style={{ fontSize: "12px" }}>❤️ {post.likesCount}</div>

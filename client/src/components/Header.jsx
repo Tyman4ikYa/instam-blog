@@ -4,14 +4,9 @@ import { useAuth } from "../context/AuthContext";
 import Settings from "./Settings";
 
 const Header = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [settingsOpen, setSettingsOpen] = useState(false);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   return (
     <>
@@ -19,10 +14,11 @@ const Header = () => {
         style={{
           background: "var(--card-bg)",
           borderBottom: "1px solid var(--border)",
-          padding: "12px 0",
+          padding: "14px 0",
           position: "sticky",
           top: 0,
           zIndex: 100,
+          backdropFilter: "blur(10px)",
           transition: "background 0.3s, border-color 0.3s",
         }}
       >
@@ -40,14 +36,18 @@ const Header = () => {
               fontSize: "26px",
               fontWeight: "bold",
               textDecoration: "none",
-              color: "var(--text)",
+              background: "var(--gradient)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              letterSpacing: "-0.5px",
               fontFamily: "'Billabong', cursive, sans-serif",
             }}
           >
             InstAm
           </Link>
 
-          <nav style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+          <nav style={{ display: "flex", gap: "16px", alignItems: "center" }}>
             {user && (
               <>
                 <Link
@@ -56,9 +56,17 @@ const Header = () => {
                     color: "var(--text)",
                     fontSize: "14px",
                     fontWeight: "600",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "8px 14px",
+                    borderRadius: "10px",
+                    transition: "background 0.2s",
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
-                  + Создать
+                  ✏️ Создать
                 </Link>
                 <Link
                   to={`/users/${user.id}`}
@@ -68,11 +76,24 @@ const Header = () => {
                     gap: "8px",
                     color: "var(--text)",
                     textDecoration: "none",
+                    padding: "4px 12px 4px 4px",
+                    borderRadius: "24px",
+                    transition: "background 0.2s",
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
-                  <div className="avatar" style={{ width: "32px", height: "32px", fontSize: "14px" }}>
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
+                  {user.avatar ? (
+                    <img
+                      src={`http://localhost:4000${user.avatar}`}
+                      alt="avatar"
+                      style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <div className="avatar" style={{ width: "32px", height: "32px", fontSize: "14px" }}>
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <span style={{ fontSize: "14px", fontWeight: "600" }}>{user.name}</span>
                 </Link>
               </>
@@ -87,11 +108,22 @@ const Header = () => {
                 fontSize: "24px",
                 cursor: "pointer",
                 color: "var(--text)",
-                padding: "4px 8px",
-                transition: "transform 0.3s",
+                width: "42px",
+                height: "42px",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "transform 0.4s, background 0.2s",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = "rotate(45deg)")}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = "rotate(0deg)")}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "rotate(90deg)";
+                e.currentTarget.style.background = "var(--hover-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "rotate(0deg)";
+                e.currentTarget.style.background = "transparent";
+              }}
             >
               ⚙️
             </button>
